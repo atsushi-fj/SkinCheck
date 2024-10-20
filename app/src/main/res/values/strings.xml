@@ -1,3 +1,8 @@
 <resources>
     <string name="app_name">Skin Check</string>
+    <string name="add_title">タイトル</string>
+    <string name="add_result">推論結果: ????</string>
+    <string name="add_result_percentage">確率: ????</string>
+    <string name="add_date">日付: </string>
+    <string name="button_save">保存する</string>
 </resources>

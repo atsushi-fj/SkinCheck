@@ -15,12 +15,18 @@ public class MyImages {
     @TypeConverters({Converters.class})
     public Date image_date;
     public String image_result;
+    public float image_result_percentage;
     public byte[] image;
 
-    public MyImages(String image_title, Date image_date, String image_result, byte[] image) {
+    public MyImages(String image_title,
+                    Date image_date,
+                    String image_result,
+                    float image_result_percentage,
+                    byte[] image) {
         this.image_title = image_title;
         this.image_date = image_date;
         this.image_result = image_result;
+        this.image_result_percentage = image_result_percentage;
         this.image = image;
     }
 
@@ -38,6 +44,10 @@ public class MyImages {
 
     public String getImage_result() {
         return image_result;
+    }
+
+    public float getImage_result_percentage() {
+        return image_result_percentage;
     }
 
     public byte[] getImage() {
