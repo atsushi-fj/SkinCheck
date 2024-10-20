@@ -10,6 +10,7 @@ import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.lifecycle.Observer;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
@@ -31,12 +32,19 @@ public class MainActivity extends AppCompatActivity {
         rv = findViewById(R.id.rv);
         fab = findViewById(R.id.fab);
 
+        rv.setLayoutManager(new LinearLayoutManager(this));
+
+        MyImagesAdapter adapter = new MyImagesAdapter();
+        rv.setAdapter(adapter);
+
         myImagesViewModel = new ViewModelProvider.AndroidViewModelFactory(getApplication())
                 .create(MyImagesViewModel.class);
 
         myImagesViewModel.getAllImages().observe(MainActivity.this, new Observer<List<MyImages>>() {
             @Override
             public void onChanged(List<MyImages> myImages) {
+
+                adapter.setImagesList(myImages);
 
             }
         });

@@ -54,4 +54,9 @@ dependencies {
 
     // Annotation processor
     annotationProcessor("androidx.lifecycle:lifecycle-compiler:$lifecycle_version")
+
+    // TensorFlow Lite
+    implementation("org.tensorflow:tensorflow-lite:2.11.0")
+    // TensorFlow Lite Support Library
+    implementation("org.tensorflow:tensorflow-lite-support:0.4.1")
 }
