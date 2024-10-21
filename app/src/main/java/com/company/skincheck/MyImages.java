@@ -12,21 +12,20 @@ public class MyImages {
     @PrimaryKey(autoGenerate = true)
     public int image_id;
     public String image_title;
-    @TypeConverters({Converters.class})
-    public Date image_date;
-    public String image_result;
+    public int image_result;
     public float image_result_percentage;
+    public String image_date;
     public byte[] image;
 
     public MyImages(String image_title,
-                    Date image_date,
-                    String image_result,
+                    int image_result,
                     float image_result_percentage,
+                    String image_date,
                     byte[] image) {
         this.image_title = image_title;
-        this.image_date = image_date;
         this.image_result = image_result;
         this.image_result_percentage = image_result_percentage;
+        this.image_date = image_date;
         this.image = image;
     }
 
@@ -38,11 +37,11 @@ public class MyImages {
         return image_title;
     }
 
-    public Date getImage_date() {
+    public String getImage_date() {
         return image_date;
     }
 
-    public String getImage_result() {
+    public int getImage_result() {
         return image_result;
     }
 

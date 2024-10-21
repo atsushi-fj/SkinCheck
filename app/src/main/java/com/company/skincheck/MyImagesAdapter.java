@@ -1,5 +1,6 @@
 package com.company.skincheck;
 
+import android.graphics.BitmapFactory;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -15,10 +16,27 @@ import java.util.List;
 public class MyImagesAdapter extends RecyclerView.Adapter<MyImagesAdapter.MyImagesHolder>{
 
     List<MyImages> imagesList = new ArrayList<>();
+    private OnImageClickListener listener;
+
+    public void setListener(OnImageClickListener listener) {
+        this.listener = listener;
+    }
 
     public void setImagesList(List<MyImages> imagesList) {
         this.imagesList = imagesList;
         notifyDataSetChanged();
+    }
+
+    public interface OnImageClickListener{
+
+        void onImageClick(MyImages myImages);
+
+    }
+
+    public MyImages getPosition(int position){
+
+        return imagesList.get(position);
+
     }
 
     @NonNull
@@ -33,7 +51,20 @@ public class MyImagesAdapter extends RecyclerView.Adapter<MyImagesAdapter.MyImag
 
     @Override
     public void onBindViewHolder(@NonNull MyImagesHolder holder, int position) {
+        if (imagesList != null && position < imagesList.size()) {
+            MyImages myImages = imagesList.get(position);
+            holder.textViewTitle.setText(myImages.getImage_title());
+            holder.textViewResult.setText(String.valueOf(myImages.getImage_result()));
+            holder.textViewResultPercentage.setText(String.valueOf(myImages.getImage_result_percentage()));
+            holder.textViewDate.setText(myImages.getImage_date());
 
+            byte[] imageBytes = myImages.getImage();
+            if (imageBytes != null) {
+                holder.imageView.setImageBitmap(BitmapFactory.decodeByteArray(imageBytes, 0, imageBytes.length));
+            } else {
+                holder.imageView.setImageResource(R.drawable.photo);
+            }
+        }
     }
 
     @Override
@@ -54,6 +85,20 @@ public class MyImagesAdapter extends RecyclerView.Adapter<MyImagesAdapter.MyImag
             textViewResult = itemView.findViewById(R.id.textViewResult);
             textViewResultPercentage = itemView.findViewById(R.id.textViewResultPercentage);
             textViewDate = itemView.findViewById(R.id.textViewDate);
+
+            itemView.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+
+                    int position = getAdapterPosition();
+
+                    if (listener != null && position != RecyclerView.NO_POSITION){
+
+                        listener.onImageClick(imagesList.get(position));
+
+                    }
+                }
+            });
 
 
         }

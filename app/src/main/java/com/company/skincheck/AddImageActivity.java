@@ -1,11 +1,15 @@
 package com.company.skincheck;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.content.res.AssetFileDescriptor;
 import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.media.Image;
+import android.net.Uri;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.util.Log;
@@ -14,8 +18,13 @@ import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.appcompat.app.AlertDialog;
 
 import androidx.activity.EdgeToEdge;
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -29,23 +38,32 @@ import org.tensorflow.lite.Interpreter;
 import org.tensorflow.lite.support.image.TensorImage;
 import org.tensorflow.lite.support.tensorbuffer.TensorBuffer;
 
+import java.io.ByteArrayOutputStream;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.nio.MappedByteBuffer;
 import java.nio.channels.FileChannel;
+import java.util.List;
+import java.util.Locale;
 
 public class AddImageActivity extends AppCompatActivity {
 
     private static final int REQUEST_CAMERA_PERMISSION = 100;
-    private static final int REQUEST_IMAGE_CAPTURE = 1;
+    private static final String TAG = "AddImageActivity";
 
     private ImageView imageViewAddImage;
     private EditText editTextAddTitle;
     private TextView textViewAddResult, textViewAddResultPercentage, textViewAddDate;
     private Button buttonSave;
-    private Bitmap bitmap;
+    private Bitmap capturedImage;
+    private Bitmap scaledImage;
+    private int maxIndex;
+    private float maxValue;
+    private String capturedDate;
 
     private Interpreter tflite;
+
+    ActivityResultLauncher<Intent> takePictureLauncher;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -61,22 +79,32 @@ public class AddImageActivity extends AppCompatActivity {
         buttonSave = findViewById(R.id.buttonSave);
 
         try {
-            tflite = new Interpreter(loadModelFile("model.tflite")); // モデルファイル名を指定
+            tflite = new Interpreter(loadModelFile("model.tflite"));
         } catch (IOException e) {
             Log.e("AddImageActivity", "Error loading model", e);
         }
 
+        takePictureLauncher = registerForActivityResult(
+                new ActivityResultContracts.StartActivityForResult(),
+                result -> {
+                    if (result.getResultCode() == RESULT_OK) {
+                        Bundle extras = result.getData().getExtras();
+                        capturedImage = (Bitmap) extras.get("data");
+                        imageViewAddImage.setImageBitmap(capturedImage);
+
+                        classifyImage(capturedImage);
+                    }
+                }
+        );
+
         imageViewAddImage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                // カメラのパーミッションを確認
                 if (ContextCompat.checkSelfPermission(AddImageActivity.this,
                         Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED) {
-                    // パーミッションがない場合、リクエストする
                     ActivityCompat.requestPermissions(AddImageActivity.this,
                             new String[]{Manifest.permission.CAMERA}, REQUEST_CAMERA_PERMISSION);
                 } else {
-                    // パーミッションが既に付与されている場合、カメラを起動
                     openCamera();
                 }
             }
@@ -86,57 +114,75 @@ public class AddImageActivity extends AppCompatActivity {
             @Override
             public void onClick(View view) {
 
+                if (capturedImage == null) {
+                    Toast.makeText(AddImageActivity.this
+                            , "写真を撮ってください!", Toast.LENGTH_SHORT).show();
+                } else {
+
+                    String title = editTextAddTitle.getText().toString();
+                    ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+                    scaledImage = makeSmall(capturedImage, 300);
+                    scaledImage.compress(Bitmap.CompressFormat.JPEG, 50, outputStream);
+                    byte[] image = outputStream.toByteArray();
+
+                    Intent intent = new Intent();
+                    intent.putExtra("title", title);
+                    intent.putExtra("result", maxIndex);
+                    intent.putExtra("result_percentage", maxValue);
+                    intent.putExtra("date", capturedDate);
+                    intent.putExtra("image", image);
+                    setResult(RESULT_OK, intent);
+                    finish();
+                }
             }
         });
     }
 
+    @SuppressLint("QueryPermissionsNeeded")
     private void openCamera() {
         Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
-        if (takePictureIntent.resolveActivity(getPackageManager()) != null) {
-            startActivityForResult(takePictureIntent, REQUEST_IMAGE_CAPTURE);
-        }
-    }
-
-    @Override
-    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == REQUEST_IMAGE_CAPTURE && resultCode == RESULT_OK) {
-            Bundle extras = data.getExtras();
-            bitmap = (Bitmap) extras.get("data");
-            imageViewAddImage.setImageBitmap(bitmap);
-            classifyImage(bitmap); // 画像を分類
-        }
+        takePictureLauncher.launch(takePictureIntent);
     }
 
     private void classifyImage(Bitmap bitmap) {
-        // 画像をTensorFlow Liteモデルに入力するための前処理
-        Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, 224, 224, true); // モデルの入力サイズに合わせる
-        float[][] result = new float[1][3]; // 出力の形状に合わせる（クラス数に応じて変更）
+        float[][][][] inputTensor = convertBitmapToTensor(bitmap);
+        float[][] result = new float[1][7];
 
-        // 画像をモデルに入力
-        tflite.run(resizedBitmapToByteArray(resizedBitmap), result);
+        tflite.run(inputTensor, result);
 
-        // 結果を表示
-        textViewAddResult.setText("クラス: " + result[0][0]);
-        textViewAddResultPercentage.setText("確率: " + result[0][1] * 100 + "%");
-        // 日付を表示
-        textViewAddDate.setText(java.text.DateFormat.getDateInstance().format(new java.util.Date()));
-    }
+        maxIndex = 0;
+        maxValue = result[0][0];
 
-    private byte[][][] resizedBitmapToByteArray(Bitmap bitmap) {
-        int width = bitmap.getWidth();
-        int height = bitmap.getHeight();
-        byte[][][] input = new byte[1][width][height]; // モデルの入力サイズに合わせる
-        // バイト配列に変換する処理を追加（モデルの入力形式に応じて調整）
-        for (int i = 0; i < width; i++) {
-            for (int j = 0; j < height; j++) {
-                int pixel = bitmap.getPixel(i, j);
-                input[0][i][j] = (byte) ((pixel >> 16) & 0xFF); // R
-                input[0][i][j] = (byte) ((pixel >> 8) & 0xFF);  // G
-                input[0][i][j] = (byte) (pixel & 0xFF);         // B
+        for (int i = 1; i < result[0].length; i++) {
+            if (result[0][i] > maxValue) {
+                maxValue = result[0][i];
+                maxIndex = i;
             }
         }
-        return input;
+
+        capturedDate = java.text.DateFormat
+                .getDateInstance(java.text.DateFormat.LONG, Locale.JAPAN)
+                .format(new java.util.Date());
+
+        textViewAddResult.setText("クラス: " + maxIndex);
+        textViewAddResultPercentage.setText("確率: " + (maxValue * 100) + "%");
+        textViewAddDate.setText(capturedDate);
+    }
+
+    private float[][][][] convertBitmapToTensor(Bitmap bitmap) {
+        int width = 224;
+        int height = 224;
+        Bitmap resizedBitmap = Bitmap.createScaledBitmap(bitmap, width, height, true);
+        float[][][][] inputTensor = new float[1][height][width][3];
+        for (int y = 0; y < height; y++) {
+            for (int x = 0; x < width; x++) {
+                int pixel = resizedBitmap.getPixel(x, y);
+                inputTensor[0][y][x][0] = ((Color.red(pixel) / 255.0f));
+                inputTensor[0][y][x][1] = ((Color.green(pixel) / 255.0f));
+                inputTensor[0][y][x][2] = ((Color.blue(pixel) / 255.0f));
+            }
+        }
+        return inputTensor;
     }
 
     @Override
@@ -144,17 +190,48 @@ public class AddImageActivity extends AppCompatActivity {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         if (requestCode == REQUEST_CAMERA_PERMISSION) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                // パーミッションが付与された場合、カメラを起動
+                Log.i(TAG, "Camera permission granted");
                 openCamera();
             } else {
-                // パーミッションが拒否された場合の処理
-                // ユーザーに説明するか、他のアクションを考慮する
+                if (ActivityCompat.shouldShowRequestPermissionRationale(this, Manifest.permission.CAMERA)) {
+                    Log.w(TAG, "Camera permission denied. Showing rationale.");
+                    showPermissionDeniedExplanation();
+                } else {
+                    Log.w(TAG, "Camera permission permanently denied. Showing settings option.");
+                    showSettingsRedirect();
+                }
             }
         }
     }
 
+    private void showPermissionDeniedExplanation() {
+        new AlertDialog.Builder(this)
+                .setTitle("カメラ権限が必要です")
+                .setMessage("アプリで写真を撮影するにはカメラの権限が必要です。設定から権限を許可してください。")
+                .setPositiveButton("設定へ", (dialog, which) -> {
+                    Intent intent = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                            Uri.fromParts("package", getPackageName(), null));
+                    startActivity(intent);
+                })
+                .setNegativeButton("キャンセル", null)
+                .show();
+    }
+
+    private void showSettingsRedirect() {
+        new AlertDialog.Builder(this)
+                .setTitle("カメラ権限が無効です")
+                .setMessage("カメラ権限が無効になっています。設定画面で権限を有効にしてください。")
+                .setPositiveButton("設定へ", (dialog, which) -> {
+                    Intent intent = new Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                            Uri.fromParts("package", getPackageName(), null));
+                    startActivity(intent);
+                })
+                .setNegativeButton("キャンセル", null)
+                .show();
+    }
+
+
     private MappedByteBuffer loadModelFile(String modelFileName) throws IOException {
-        // モデルファイルをアセットから読み込む処理を追加
         AssetFileDescriptor fileDescriptor = this.getAssets().openFd(modelFileName);
         FileInputStream inputStream = new FileInputStream(fileDescriptor.getFileDescriptor());
         FileChannel fileChannel = inputStream.getChannel();
@@ -169,5 +246,27 @@ public class AddImageActivity extends AppCompatActivity {
         if (tflite != null) {
             tflite.close();
         }
+    }
+
+    public Bitmap makeSmall(Bitmap image, int maxSize){
+
+        int width = image.getWidth();
+        int height = image.getHeight();
+
+        float ratio = (float) width / (float) height;
+
+        if (ratio > 1){
+
+            width = maxSize;
+            height = (int) (width / ratio);
+
+        } else {
+
+            height = maxSize;
+            width = (int) (height * ratio);
+
+        }
+
+        return Bitmap.createScaledBitmap(image,width,height,true);
     }
 }
