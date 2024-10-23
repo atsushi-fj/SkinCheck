@@ -53,7 +53,7 @@ public class AddImageActivity extends AppCompatActivity {
 
     private ImageView imageViewAddImage;
     private EditText editTextAddTitle;
-    private TextView textViewAddResult, textViewAddResultPercentage, textViewAddDate;
+    private TextView textViewAddResult, textViewAddResultPercentage, textViewAddFeedback, textViewAddDate;
     private Button buttonSave;
     private Bitmap capturedImage;
     private Bitmap scaledImage;
@@ -75,6 +75,7 @@ public class AddImageActivity extends AppCompatActivity {
         editTextAddTitle = findViewById(R.id.editTextAddTitle);
         textViewAddResult = findViewById(R.id.textViewAddResult);
         textViewAddResultPercentage = findViewById(R.id.textViewAddResultPercentage);
+        textViewAddFeedback = findViewById(R.id.textViewAddFeedback);
         textViewAddDate = findViewById(R.id.textViewAddDate);
         buttonSave = findViewById(R.id.buttonSave);
 
@@ -164,8 +165,12 @@ public class AddImageActivity extends AppCompatActivity {
                 .getDateInstance(java.text.DateFormat.LONG, Locale.JAPAN)
                 .format(new java.util.Date());
 
-        textViewAddResult.setText("クラス: " + maxIndex);
+        String[] resultArray = getResources().getStringArray(R.array.result_array);
+        String[] feedbackArray = getResources().getStringArray(R.array.feedback_array);
+
+        textViewAddResult.setText("クラス: " + resultArray[maxIndex]);
         textViewAddResultPercentage.setText("確率: " + (maxValue * 100) + "%");
+        textViewAddFeedback.setText("説明: " + feedbackArray[maxIndex]);
         textViewAddDate.setText(capturedDate);
     }
 

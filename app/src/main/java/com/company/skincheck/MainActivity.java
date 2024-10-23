@@ -48,7 +48,7 @@ public class MainActivity extends AppCompatActivity {
 
         rv.setLayoutManager(new LinearLayoutManager(this));
 
-        MyImagesAdapter adapter = new MyImagesAdapter();
+        MyImagesAdapter adapter = new MyImagesAdapter(this);
         rv.setAdapter(adapter);
 
         myImagesViewModel = new ViewModelProvider.AndroidViewModelFactory(getApplication())

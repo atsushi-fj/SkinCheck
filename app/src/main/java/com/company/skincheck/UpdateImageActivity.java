@@ -23,7 +23,7 @@ public class UpdateImageActivity extends AppCompatActivity {
 
     private ImageView imageViewUpdateImage;
     private EditText editTextUpdateTitle;
-    private TextView textViewUpdateResult, textViewUpdateResultPercentage, textViewUpdateDate;
+    private TextView textViewUpdateResult, textViewUpdateResultPercentage, textViewUpdateFeedback, textViewUpdateDate;
     private Button buttonUpdate;
 
     private String title, date;
@@ -41,6 +41,7 @@ public class UpdateImageActivity extends AppCompatActivity {
         editTextUpdateTitle = findViewById(R.id.editTextUpdateTitle);
         textViewUpdateResult = findViewById(R.id.textViewUpdateResult);
         textViewUpdateResultPercentage = findViewById(R.id.textViewUpdateResultPercentage);
+        textViewUpdateFeedback = findViewById(R.id.textViewUpdateFeedback);
         textViewUpdateDate = findViewById(R.id.textViewUpdateDate);
         buttonUpdate = findViewById(R.id.buttonUpdate);
 
@@ -51,9 +52,13 @@ public class UpdateImageActivity extends AppCompatActivity {
         date = getIntent().getStringExtra("date");
         image = getIntent().getByteArrayExtra("image");
 
+        String[] resultArray = getResources().getStringArray(R.array.result_array);
+        String[] feedbackArray = getResources().getStringArray(R.array.feedback_array);
+
         editTextUpdateTitle.setText(title);
-        textViewUpdateResult.setText("クラス: " + result);
+        textViewUpdateResult.setText("クラス: " + resultArray[result]);
         textViewUpdateResultPercentage.setText("確率: " + (result_percentage * 100) + "%");
+        textViewUpdateFeedback.setText("説明: " + feedbackArray[result]);
         textViewUpdateDate.setText(date);
         imageViewUpdateImage.setImageBitmap(BitmapFactory.decodeByteArray(image, 0, image.length));
 

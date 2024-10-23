@@ -1,5 +1,6 @@
 package com.company.skincheck;
 
+import android.content.Context;
 import android.graphics.BitmapFactory;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -17,6 +18,11 @@ public class MyImagesAdapter extends RecyclerView.Adapter<MyImagesAdapter.MyImag
 
     List<MyImages> imagesList = new ArrayList<>();
     private OnImageClickListener listener;
+    private Context context;
+
+    public MyImagesAdapter(Context context) {
+        this.context = context;
+    }
 
     public void setListener(OnImageClickListener listener) {
         this.listener = listener;
@@ -52,9 +58,10 @@ public class MyImagesAdapter extends RecyclerView.Adapter<MyImagesAdapter.MyImag
     @Override
     public void onBindViewHolder(@NonNull MyImagesHolder holder, int position) {
         if (imagesList != null && position < imagesList.size()) {
+            String[] resultArray = context.getResources().getStringArray(R.array.result_array);
             MyImages myImages = imagesList.get(position);
             holder.textViewTitle.setText(myImages.getImage_title());
-            holder.textViewResult.setText(String.valueOf(myImages.getImage_result()));
+            holder.textViewResult.setText(resultArray[myImages.getImage_result()]);
             holder.textViewResultPercentage.setText(String.valueOf(myImages.getImage_result_percentage()));
             holder.textViewDate.setText(myImages.getImage_date());
 
