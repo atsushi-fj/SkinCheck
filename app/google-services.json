@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "427673921676",
+    "project_id": "skincheck-7dd4d",
+    "storage_bucket": "skincheck-7dd4d.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:427673921676:android:a4701e6d74219b39e8f3a9",
+        "android_client_info": {
+          "package_name": "com.company.skincheck"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCnuYJLP063rsTPzQdOVKrtzITPQgUyLVY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

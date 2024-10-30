@@ -1,5 +1,7 @@
 <resources>
     <string name="app_name">Skin Check</string>
+    <string name="sign_in">会員登録</string>
+    <string name="login"></string>
     <string name="add_title">タイトル</string>
     <string name="add_result">推論結果: ????</string>
     <string name="add_result_percentage">確率: ????</string>
